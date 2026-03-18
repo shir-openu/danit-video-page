@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            background: #1a1a2e;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        /* --- Floating video --- */
+        #floating-video {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: 220px;
+            height: 220px;
+            z-index: 999999;
+            cursor: grab;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+            border: 3px solid #fff;
+            transition: box-shadow 0.3s;
+        }
+        #floating-video:hover { box-shadow: 0 4px 32px rgba(0,0,0,0.7); }
+        #floating-video:active { cursor: grabbing; }
+        #floating-video video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* --- Controls --- */
+        #vid-controls {
+            position: fixed;
+            top: 198px;
+            right: 16px;
+            z-index: 1000000;
+            display: flex;
+            gap: 4px;
+        }
+        #vid-controls button {
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 28px;
+            text-align: center;
+        }
+        #vid-controls button:hover { background: rgba(0,0,0,0.85); }
+
+        /* --- Hint --- */
+        .tap-hint {
+            position: fixed;
+            top: 240px;
+            right: 16px;
+            width: 220px;
+            text-align: center;
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 999999;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        /* --- Content iframe area --- */
+        #content-area {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #content-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #fff;
+            display: none;
+        }
+        #waiting-message {
+            color: rgba(255,255,255,0.4);
+            font-size: 22px;
+            text-align: center;
+            direction: rtl;
+        }
+
+        /* --- Progress bar --- */
+        #progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: #6366f1;
+            z-index: 999999;
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        /* --- Upcoming label --- */
+        #next-label {
+            position: fixed;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            color: #ccc;
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            z-index: 999999;
+            direction: ltr;
+            transition: opacity 0.4s;
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Danit -->
+    <div id="floating-video">
+        <video id="vid" playsinline preload="auto">
+            <source src="danit_hila_message_hedra.mp4" type="video/mp4">
+        </video>
+    </div>
+    <div id="vid-controls">
+        <button id="btn-mute" title="Mute/Unmute">🔊</button>
+        <button id="btn-close" title="Close">✕</button>
+    </div>
+    <div class="tap-hint" id="hint">לחצו במקום כלשהו להפעלת הסרטון</div>
+
+    <!-- Content area -->
+    <div id="content-area">
+        <div id="waiting-message">הסרטון יתחיל בקרוב...</div>
+        <iframe id="content-iframe" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
+    </div>
+
+    <!-- Progress bar -->
+    <div id="progress-bar"></div>
+    <div id="next-label"></div>
+
+    <script>
+        var vid = document.getElementById('vid');
+        var hint = document.getElementById('hint');
+        var floater = document.getElementById('floating-video');
+        var controls = document.getElementById('vid-controls');
+        var btnMute = document.getElementById('btn-mute');
+        var btnClose = document.getElementById('btn-close');
+        var iframe = document.getElementById('content-iframe');
+        var waitMsg = document.getElementById('waiting-message');
+        var progressBar = document.getElementById('progress-bar');
+        var nextLabel = document.getElementById('next-label');
+
+        // --- Schedule ---
+        var schedule = [
+            {
+                url: 'https://shir-openu.github.io/example_second_order_direction_field_enrichment/',
+                open: 35, close: 55,
+                scrollHalf: false
+            },
+            {
+                url: 'https://shir-openu.github.io/direction_field_3/',
+                open: 58, close: 73,
+                scrollHalf: false
+            },
+            {
+                url: 'https://shir-openu.github.io/ODE-20218-2nd-DF7/',
+                open: 74, close: 84,
+                scrollHalf: false
+            },
+            {
+                url: 'https://shir-openu.github.io/2021c-75-Q8/',
+                open: 85, close: 98,
+                scrollHalf: true
+            }
+        ];
+
+        var currentSlide = -1;
+        var scrollDone = {};
+
+        vid.addEventListener('timeupdate', function() {
+            var t = vid.currentTime;
+            var duration = vid.duration || 105;
+
+            // Progress bar
+            progressBar.style.width = ((t / duration) * 100) + '%';
+
+            // Find which slide should be active
+            var activeSlide = -1;
+            for (var i = 0; i < schedule.length; i++) {
+                if (t >= schedule[i].open && t < schedule[i].close) {
+                    activeSlide = i;
+                    break;
+                }
+            }
+
+            // Show/hide iframe
+            if (activeSlide !== currentSlide) {
+                currentSlide = activeSlide;
+                if (activeSlide >= 0) {
+                    iframe.src = schedule[activeSlide].url;
+                    iframe.style.display = 'block';
+                    waitMsg.style.display = 'none';
+                    nextLabel.style.opacity = '0';
+
+                    // Slow scroll for last slide
+                    if (schedule[activeSlide].scrollHalf && !scrollDone[activeSlide]) {
+                        scrollDone[activeSlide] = true;
+                        setTimeout(function() {
+                            try {
+                                var doc = iframe.contentDocument || iframe.contentWindow.document;
+                                var scrollTarget = Math.round(doc.documentElement.scrollHeight / 2);
+                                var current = 0;
+                                var step = Math.max(1, Math.round(scrollTarget / 60));
+                                var scrollInterval = setInterval(function() {
+                                    current += step;
+                                    if (current >= scrollTarget) {
+                                        iframe.contentWindow.scrollTo(0, scrollTarget);
+                                        clearInterval(scrollInterval);
+                                    } else {
+                                        iframe.contentWindow.scrollTo(0, current);
+                                    }
+                                }, 30);
+                            } catch(e) {
+                                // Cross-origin — can't scroll, that's ok
+                            }
+                        }, 2000);
+                    }
+                } else {
+                    iframe.style.display = 'none';
+                    iframe.src = 'about:blank';
+
+                    // Show next-up info
+                    var nextSlide = null;
+                    for (var j = 0; j < schedule.length; j++) {
+                        if (t < schedule[j].open) { nextSlide = j; break; }
+                    }
+                    if (nextSlide !== null) {
+                        var secsLeft = Math.ceil(schedule[nextSlide].open - t);
+                        waitMsg.style.display = 'block';
+                        waitMsg.textContent = 'העמוד הבא ייפתח בעוד ' + secsLeft + ' שניות';
+                        nextLabel.style.opacity = '1';
+                        nextLabel.textContent = 'Next: slide ' + (nextSlide + 1) + ' of ' + schedule.length;
+                    } else if (t >= schedule[schedule.length - 1].close) {
+                        waitMsg.style.display = 'block';
+                        waitMsg.textContent = 'תודה על הצפייה!';
+                        nextLabel.style.opacity = '0';
+                    } else {
+                        waitMsg.style.display = 'block';
+                        waitMsg.textContent = 'הסרטון יתחיל בקרוב...';
+                        nextLabel.style.opacity = '0';
+                    }
+                }
+            } else if (activeSlide < 0) {
+                // Update countdown while between slides
+                var nextSlide2 = null;
+                for (var k = 0; k < schedule.length; k++) {
+                    if (t < schedule[k].open) { nextSlide2 = k; break; }
+                }
+                if (nextSlide2 !== null) {
+                    var secsLeft2 = Math.ceil(schedule[nextSlide2].open - t);
+                    waitMsg.textContent = 'העמוד הבא ייפתח בעוד ' + secsLeft2 + ' שניות';
+                }
+            }
+        });
+
+        // --- Play on first interaction ---
+        function playOnce() {
+            vid.play();
+            hint.style.opacity = '0';
+            setTimeout(function() { hint.style.display = 'none'; }, 500);
+            document.removeEventListener('click', playOnce);
+            document.removeEventListener('keydown', playOnce);
+            document.removeEventListener('touchstart', playOnce);
+        }
+        document.addEventListener('click', playOnce);
+        document.addEventListener('keydown', playOnce);
+        document.addEventListener('touchstart', playOnce);
+
+        // --- Mute/Unmute ---
+        btnMute.addEventListener('click', function(e) {
+            e.stopPropagation();
+            vid.muted = !vid.muted;
+            btnMute.textContent = vid.muted ? '🔇' : '🔊';
+        });
+
+        // --- Close video ---
+        btnClose.addEventListener('click', function(e) {
+            e.stopPropagation();
+            floater.style.display = 'none';
+            controls.style.display = 'none';
+            vid.pause();
+        });
+
+        // --- Draggable ---
+        var isDragging = false, dragOffX, dragOffY;
+        floater.addEventListener('mousedown', function(e) {
+            if (e.target.tagName === 'BUTTON') return;
+            isDragging = true;
+            var rect = floater.getBoundingClientRect();
+            dragOffX = e.clientX - rect.left;
+            dragOffY = e.clientY - rect.top;
+            floater.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            floater.style.left = (e.clientX - dragOffX) + 'px';
+            floater.style.top = (e.clientY - dragOffY) + 'px';
+            floater.style.right = 'auto';
+            controls.style.left = (e.clientX - dragOffX) + 'px';
+            controls.style.top = (e.clientY - dragOffY + 182) + 'px';
+            controls.style.right = 'auto';
+        });
+        document.addEventListener('mouseup', function() {
+            isDragging = false;
+            floater.style.cursor = 'grab';
+        });
+    </script>
+</body>
+</html>
