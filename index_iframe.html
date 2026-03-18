@@ -113,14 +113,14 @@
 <body>
     <!-- Floating Danit -->
     <div id="floating-video">
-        <video id="vid" playsinline preload="auto">
+        <video id="vid" playsinline preload="auto" autoplay muted>
             <source src="danit_hila_message_hedra.mp4" type="video/mp4">
         </video>
     </div>
     <div id="vid-controls">
         <button id="btn-mute" title="Mute/Unmute">🔊</button>
     </div>
-    <div class="tap-hint" id="hint">לחצו במקום כלשהו להפעלת הסרטון</div>
+    <div class="tap-hint" id="hint">לחצו במקום כלשהו לשמיעת הקול</div>
 
     <!-- Content area -->
     <div id="content-area">
@@ -217,18 +217,19 @@
             }
         });
 
-        // --- Play on first interaction ---
-        function playOnce() {
-            vid.play();
+        // --- Unmute on first interaction (video autoplays muted) ---
+        function unmuteOnce() {
+            vid.muted = false;
+            btnMute.textContent = '🔊';
             hint.style.opacity = '0';
             setTimeout(function() { hint.style.display = 'none'; }, 500);
-            document.removeEventListener('click', playOnce);
-            document.removeEventListener('keydown', playOnce);
-            document.removeEventListener('touchstart', playOnce);
+            document.removeEventListener('click', unmuteOnce);
+            document.removeEventListener('keydown', unmuteOnce);
+            document.removeEventListener('touchstart', unmuteOnce);
         }
-        document.addEventListener('click', playOnce);
-        document.addEventListener('keydown', playOnce);
-        document.addEventListener('touchstart', playOnce);
+        document.addEventListener('click', unmuteOnce);
+        document.addEventListener('keydown', unmuteOnce);
+        document.addEventListener('touchstart', unmuteOnce);
 
         // --- Mute/Unmute ---
         btnMute.addEventListener('click', function(e) {
