@@ -8,7 +8,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; }
         body {
-            background: #1a1a2e;
+            background: transparent;
             font-family: Arial, sans-serif;
             overflow: hidden;
         }
@@ -96,13 +96,6 @@
             background: #fff;
             display: none;
         }
-        #waiting-message {
-            color: rgba(255,255,255,0.4);
-            font-size: 22px;
-            text-align: center;
-            direction: rtl;
-        }
-
         /* --- Progress bar --- */
         #progress-bar {
             position: fixed;
@@ -115,21 +108,6 @@
             width: 0%;
         }
 
-        /* --- Upcoming label --- */
-        #next-label {
-            position: fixed;
-            bottom: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.6);
-            color: #ccc;
-            padding: 6px 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            z-index: 999999;
-            direction: ltr;
-            transition: opacity 0.4s;
-        }
     </style>
 </head>
 <body>
@@ -147,13 +125,11 @@
 
     <!-- Content area -->
     <div id="content-area">
-        <div id="waiting-message">הסרטון יתחיל בקרוב...</div>
         <iframe id="content-iframe" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
     </div>
 
     <!-- Progress bar -->
     <div id="progress-bar"></div>
-    <div id="next-label"></div>
 
     <script>
         var vid = document.getElementById('vid');
@@ -163,9 +139,7 @@
         var btnMute = document.getElementById('btn-mute');
         var btnClose = document.getElementById('btn-close');
         var iframe = document.getElementById('content-iframe');
-        var waitMsg = document.getElementById('waiting-message');
         var progressBar = document.getElementById('progress-bar');
-        var nextLabel = document.getElementById('next-label');
 
         // --- Schedule ---
         var schedule = [
@@ -216,8 +190,6 @@
                 if (activeSlide >= 0) {
                     iframe.src = schedule[activeSlide].url;
                     iframe.style.display = 'block';
-                    waitMsg.style.display = 'none';
-                    nextLabel.style.opacity = '0';
 
                     // Slow scroll for last slide
                     if (schedule[activeSlide].scrollHalf && !scrollDone[activeSlide]) {
@@ -237,45 +209,12 @@
                                         iframe.contentWindow.scrollTo(0, current);
                                     }
                                 }, 30);
-                            } catch(e) {
-                                // Cross-origin — can't scroll, that's ok
-                            }
+                            } catch(e) {}
                         }, 2000);
                     }
                 } else {
                     iframe.style.display = 'none';
                     iframe.src = 'about:blank';
-
-                    // Show next-up info
-                    var nextSlide = null;
-                    for (var j = 0; j < schedule.length; j++) {
-                        if (t < schedule[j].open) { nextSlide = j; break; }
-                    }
-                    if (nextSlide !== null) {
-                        var secsLeft = Math.ceil(schedule[nextSlide].open - t);
-                        waitMsg.style.display = 'block';
-                        waitMsg.textContent = 'העמוד הבא ייפתח בעוד ' + secsLeft + ' שניות';
-                        nextLabel.style.opacity = '1';
-                        nextLabel.textContent = 'Next: slide ' + (nextSlide + 1) + ' of ' + schedule.length;
-                    } else if (t >= schedule[schedule.length - 1].close) {
-                        waitMsg.style.display = 'block';
-                        waitMsg.textContent = 'תודה על הצפייה!';
-                        nextLabel.style.opacity = '0';
-                    } else {
-                        waitMsg.style.display = 'block';
-                        waitMsg.textContent = 'הסרטון יתחיל בקרוב...';
-                        nextLabel.style.opacity = '0';
-                    }
-                }
-            } else if (activeSlide < 0) {
-                // Update countdown while between slides
-                var nextSlide2 = null;
-                for (var k = 0; k < schedule.length; k++) {
-                    if (t < schedule[k].open) { nextSlide2 = k; break; }
-                }
-                if (nextSlide2 !== null) {
-                    var secsLeft2 = Math.ceil(schedule[nextSlide2].open - t);
-                    waitMsg.textContent = 'העמוד הבא ייפתח בעוד ' + secsLeft2 + ' שניות';
                 }
             }
         });
