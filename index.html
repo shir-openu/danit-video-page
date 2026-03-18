@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 960px;
+            position: relative;
+        }
+        video {
+            width: 100%;
+            border-radius: 8px;
+            display: block;
+        }
+        .tap-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-family: Arial, sans-serif;
+            font-size: 20px;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <video id="vid" playsinline controls preload="auto">
+            <source src="danit_hila_message_hedra.mp4" type="video/mp4">
+        </video>
+        <div class="tap-hint" id="hint">לחצו במקום כלשהו להפעלת הסרטון</div>
+    </div>
+    <script>
+        function playOnce() {
+            var v = document.getElementById('vid');
+            var h = document.getElementById('hint');
+            v.play();
+            h.style.opacity = '0';
+            setTimeout(function() { h.style.display = 'none'; }, 500);
+            document.removeEventListener('click', playOnce);
+            document.removeEventListener('keydown', playOnce);
+            document.removeEventListener('touchstart', playOnce);
+        }
+        document.addEventListener('click', playOnce);
+        document.addEventListener('keydown', playOnce);
+        document.addEventListener('touchstart', playOnce);
+    </script>
+</body>
+</html>
