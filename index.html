@@ -7,52 +7,160 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            background: transparent;
         }
-        .container {
-            width: 100%;
-            max-width: 960px;
-            position: relative;
+        #floating-video {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: 220px;
+            height: 220px;
+            z-index: 999999;
+            cursor: grab;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+            border: 3px solid #fff;
         }
-        video {
+        #floating-video:active { cursor: grabbing; }
+        #floating-video video {
             width: 100%;
-            border-radius: 8px;
+            height: 100%;
+            object-fit: cover;
             display: block;
         }
         .tap-hint {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.6);
+            position: fixed;
+            top: 240px;
+            right: 16px;
+            width: 220px;
+            text-align: center;
+            background: rgba(0,0,0,0.7);
             color: #fff;
-            padding: 16px 32px;
-            border-radius: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
             font-family: Arial, sans-serif;
-            font-size: 20px;
+            font-size: 14px;
+            z-index: 999999;
             pointer-events: none;
             transition: opacity 0.5s;
         }
+        #vid-controls {
+            position: fixed;
+            top: 198px;
+            right: 16px;
+            z-index: 1000000;
+            display: flex;
+            gap: 4px;
+        }
+        #vid-controls button {
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 28px;
+            text-align: center;
+        }
+        #vid-controls button:hover { background: rgba(0,0,0,0.85); }
     </style>
 </head>
 <body>
-    <div class="container">
-        <video id="vid" playsinline controls preload="auto">
+    <div id="floating-video">
+        <video id="vid" playsinline preload="auto">
             <source src="danit_hila_message_hedra.mp4" type="video/mp4">
         </video>
-        <div class="tap-hint" id="hint">לחצו במקום כלשהו להפעלת הסרטון</div>
     </div>
+    <div id="vid-controls">
+        <button id="btn-mute" title="Mute/Unmute">🔊</button>
+        <button id="btn-close" title="Close">✕</button>
+    </div>
+    <div class="tap-hint" id="hint">לחצו במקום כלשהו להפעלת הסרטון</div>
+
     <script>
+        var vid = document.getElementById('vid');
+        var hint = document.getElementById('hint');
+        var floater = document.getElementById('floating-video');
+        var controls = document.getElementById('vid-controls');
+        var btnMute = document.getElementById('btn-mute');
+        var btnClose = document.getElementById('btn-close');
+
+        // --- Timed tab open/close schedule ---
+        var schedule = [
+            {
+                url: 'https://shir-openu.github.io/example_second_order_direction_field_enrichment/',
+                open: 35, close: 55,
+                scrollHalf: false
+            },
+            {
+                url: 'https://shir-openu.github.io/direction_field_3/',
+                open: 58, close: 73,
+                scrollHalf: false
+            },
+            {
+                url: 'https://shir-openu.github.io/ODE-20218-2nd-DF7/',
+                open: 74, close: 84,
+                scrollHalf: false
+            },
+            {
+                url: 'https://shir-openu.github.io/2021c-75-Q8/',
+                open: 85, close: 98,
+                scrollHalf: true
+            }
+        ];
+
+        var openWindows = {};
+        var firedOpen = {};
+        var firedClose = {};
+
+        vid.addEventListener('timeupdate', function() {
+            var t = vid.currentTime;
+            for (var i = 0; i < schedule.length; i++) {
+                var s = schedule[i];
+                var key = 'tab' + i;
+                // Open tab
+                if (t >= s.open && !firedOpen[key]) {
+                    firedOpen[key] = true;
+                    var w = window.open(s.url, key);
+                    openWindows[key] = w;
+                    // Slow scroll for last tab
+                    if (s.scrollHalf && w) {
+                        setTimeout(function(win) {
+                            try {
+                                var scrollTarget = Math.round(win.document.documentElement.scrollHeight / 2);
+                                var current = 0;
+                                var step = Math.max(1, Math.round(scrollTarget / 60));
+                                var scrollInterval = setInterval(function() {
+                                    current += step;
+                                    if (current >= scrollTarget) {
+                                        win.scrollTo({ top: scrollTarget, behavior: 'auto' });
+                                        clearInterval(scrollInterval);
+                                    } else {
+                                        win.scrollTo({ top: current, behavior: 'auto' });
+                                    }
+                                }, 30);
+                            } catch(e) {}
+                        }.bind(null, w), 2000);
+                    }
+                }
+                // Close tab
+                if (t >= s.close && !firedClose[key]) {
+                    firedClose[key] = true;
+                    if (openWindows[key] && !openWindows[key].closed) {
+                        openWindows[key].close();
+                    }
+                }
+            }
+        });
+
+        // --- Play on first interaction ---
         function playOnce() {
-            var v = document.getElementById('vid');
-            var h = document.getElementById('hint');
-            v.play();
-            h.style.opacity = '0';
-            setTimeout(function() { h.style.display = 'none'; }, 500);
+            vid.play();
+            hint.style.opacity = '0';
+            setTimeout(function() { hint.style.display = 'none'; }, 500);
             document.removeEventListener('click', playOnce);
             document.removeEventListener('keydown', playOnce);
             document.removeEventListener('touchstart', playOnce);
@@ -60,6 +168,46 @@
         document.addEventListener('click', playOnce);
         document.addEventListener('keydown', playOnce);
         document.addEventListener('touchstart', playOnce);
+
+        // --- Mute/Unmute ---
+        btnMute.addEventListener('click', function(e) {
+            e.stopPropagation();
+            vid.muted = !vid.muted;
+            btnMute.textContent = vid.muted ? '🔇' : '🔊';
+        });
+
+        // --- Close button ---
+        btnClose.addEventListener('click', function(e) {
+            e.stopPropagation();
+            floater.style.display = 'none';
+            controls.style.display = 'none';
+            vid.pause();
+        });
+
+        // --- Draggable ---
+        var isDragging = false, dragOffX, dragOffY;
+        floater.addEventListener('mousedown', function(e) {
+            if (e.target.tagName === 'BUTTON') return;
+            isDragging = true;
+            var rect = floater.getBoundingClientRect();
+            dragOffX = e.clientX - rect.left;
+            dragOffY = e.clientY - rect.top;
+            floater.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            floater.style.left = (e.clientX - dragOffX) + 'px';
+            floater.style.top = (e.clientY - dragOffY) + 'px';
+            floater.style.right = 'auto';
+            controls.style.left = (e.clientX - dragOffX) + 'px';
+            controls.style.top = (e.clientY - dragOffY + 182) + 'px';
+            controls.style.right = 'auto';
+        });
+        document.addEventListener('mouseup', function() {
+            isDragging = false;
+            floater.style.cursor = 'grab';
+        });
     </script>
 </body>
 </html>
