@@ -268,7 +268,7 @@
 <div class="pause-overlay" id="pauseOverlay1">
     <div class="pause-popup">
         <h3>שדה כיוונים</h3>
-        <button class="link-btn" onclick="openMoodleAndResume('https://opal.openu.ac.il/mod/combopage/view.php?id=6753291&from=nav')">פתחי את העמוד</button>
+        <a href="https://opal.openu.ac.il/mod/combopage/view.php?id=6753291&from=nav" target="_blank" rel="noopener" class="link-btn" id="moodleLink">פתחי את העמוד</a>
         <br>
         <button class="continue-btn" id="continueBtn1" onclick="continueVideo()">המשיכי לצפות</button>
     </div>
@@ -431,34 +431,32 @@
     });
 
     // ==========================================
-    // Moodle link: open page
-    // CRITICAL FIX (v20): window.open MUST be the
-    // VERY FIRST call — synchronous, in user-gesture
-    // context. Any promise chain before it loses the
-    // click context and gets popup-blocked.
-    // Overlay hide is DELAYED so DOM removal doesn't
-    // cancel the navigation.
+    // Moodle link: real <a href target="_blank">
+    // v21 FIX: NO window.open at all. The <a> tag
+    // handles navigation natively — browsers NEVER
+    // block real <a> clicks as popups, even inside
+    // iframes or cross-origin contexts.
+    //
+    // CRITICAL: Do NOT hide the overlay synchronously!
+    // Hiding the parent (display:none) before the <a>
+    // navigation completes cancels the navigation.
+    // All cleanup happens in a 2-second setTimeout.
     // ==========================================
-    function openMoodleAndResume(url) {
-        // STEP 1: Open Moodle IMMEDIATELY (preserves user gesture)
-        moodleWin = window.open(url, '_blank');
+    document.getElementById('moodleLink').addEventListener('click', function() {
+        // Do NOT call preventDefault — let the <a> tag navigate naturally!
+        // Do NOT hide overlay now — DOM removal cancels navigation!
 
-        // STEP 2: Stop preset cycling
         stopTabCycling();
 
-        // STEP 3: Resume video + try PiP (async is fine now)
-        vid.play().then(function() {
-            tryPiP();
-        }).catch(function() {});
-
-        // STEP 4: Hide overlay AFTER delay (prevents DOM removal
-        // from cancelling the window.open navigation)
+        // Delayed cleanup: hide overlay + resume video AFTER navigation starts
         setTimeout(function() {
             document.getElementById('pauseOverlay1').classList.remove('active');
-        }, 1000);
-
-        showScrollToast();
-    }
+            vid.play().then(function() {
+                tryPiP();
+            }).catch(function() {});
+            showScrollToast();
+        }, 2000);
+    });
 
     function continueVideo() {
         document.getElementById('pauseOverlay1').classList.remove('active');
