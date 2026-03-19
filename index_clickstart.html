@@ -8,7 +8,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; }
         body {
-            background: transparent;
+            background: #fff;
             font-family: Arial, sans-serif;
             overflow: hidden;
         }
@@ -402,11 +402,28 @@
                                 var scrollTarget = Math.round(doc.documentElement.scrollHeight / 2);
                                 var cur = 0;
                                 var step = Math.max(1, Math.round(scrollTarget / 60));
+                                // Scroll down
                                 var si = setInterval(function() {
                                     cur += step;
                                     if (cur >= scrollTarget) {
                                         iframe.contentWindow.scrollTo(0, scrollTarget);
                                         clearInterval(si);
+                                        // After reaching bottom, wait 3s then scroll back up
+                                        setTimeout(function() {
+                                            try {
+                                                var pos = scrollTarget;
+                                                var stepUp = Math.max(1, Math.round(scrollTarget / 80));
+                                                var su = setInterval(function() {
+                                                    pos -= stepUp;
+                                                    if (pos <= 0) {
+                                                        iframe.contentWindow.scrollTo(0, 0);
+                                                        clearInterval(su);
+                                                    } else {
+                                                        iframe.contentWindow.scrollTo(0, pos);
+                                                    }
+                                                }, 30);
+                                            } catch(e2) {}
+                                        }, 3000);
                                     } else {
                                         iframe.contentWindow.scrollTo(0, cur);
                                     }
@@ -417,7 +434,12 @@
                 } else {
                     iframe.style.display = 'none';
                     iframe.src = 'about:blank';
-                    bgIframe.style.display = 'block';
+                    // White background between pages (not initial bg)
+                    if (started && t > mediaClose) {
+                        bgIframe.style.display = 'none';
+                    } else {
+                        bgIframe.style.display = 'block';
+                    }
                 }
             }
         });
