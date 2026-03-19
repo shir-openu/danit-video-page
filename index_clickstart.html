@@ -359,9 +359,9 @@
 
             // --- Media overlay ---
             if (t >= mediaOpen && t < mediaClose) {
+                bgIframe.style.display = 'none';
                 if (!mediaShowing) {
                     mediaShowing = true;
-                    bgIframe.style.display = 'none';
                     mediaOverlay.style.display = 'block';
                     for (var m = 0; m < floatItems.length; m++) {
                         (function(item, delay) {
