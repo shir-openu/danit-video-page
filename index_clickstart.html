@@ -201,13 +201,16 @@
             overflow: hidden;
             opacity: 0;
             transition: opacity 0.8s ease-in;
+            background: #fff;
+            padding: 6px;
         }
         .float-item.visible { opacity: 1; }
         .float-item img, .float-item video {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
             display: block;
+            background: #fff;
         }
         @keyframes floatA { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
         @keyframes floatB { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
@@ -258,31 +261,31 @@
 
     <!-- Floating media overlay (0:35 - 0:55) -->
     <div id="media-overlay">
-        <div class="float-item" style="top:3%; left:2%; width:200px; height:200px;">
+        <div class="float-item" style="top:1%; left:1%; width:300px; height:300px;">
             <img src="media/paraboloid_heatmap.png" alt="">
         </div>
-        <div class="float-item" style="top:5%; left:22%; width:180px; height:140px;">
+        <div class="float-item" style="top:2%; left:25%; width:280px; height:220px;">
             <video autoplay muted loop playsinline>
                 <source src="media/paraboloid_sections.webm" type="video/webm">
             </video>
         </div>
-        <div class="float-item" style="top:2%; left:42%; width:170px; height:140px;">
+        <div class="float-item" style="top:1%; left:50%; width:270px; height:220px;">
             <video autoplay muted loop playsinline>
                 <source src="media/isoclines_animation.webm" type="video/webm">
             </video>
         </div>
-        <div class="float-item" style="top:38%; left:5%; width:190px; height:150px;">
+        <div class="float-item" style="top:40%; left:2%; width:300px; height:240px;">
             <video autoplay muted loop playsinline>
                 <source src="media/arrows_isoclines_smaller.webm" type="video/webm">
             </video>
         </div>
-        <div class="float-item" style="top:35%; left:60%; width:200px; height:200px;">
+        <div class="float-item" style="top:35%; left:48%; width:320px; height:320px;">
             <img src="media/solutions_field.gif" alt="">
         </div>
-        <div class="float-item" style="top:65%; left:8%; width:180px; height:180px;">
+        <div class="float-item" style="top:62%; left:2%; width:280px; height:280px;">
             <img src="media/string_art_envelope.jpg" alt="">
         </div>
-        <div class="float-item" style="top:60%; left:50%; width:190px; height:190px;">
+        <div class="float-item" style="top:58%; left:40%; width:300px; height:300px;">
             <img src="media/envelope_family_lines_animation.gif" alt="">
         </div>
     </div>
