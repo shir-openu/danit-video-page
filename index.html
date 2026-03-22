@@ -265,7 +265,7 @@
 <div class="pause-overlay" id="pauseOverlay1">
     <div class="pause-popup">
         <h3>שדה כיוונים</h3>
-        <a href="https://opal.openu.ac.il/mod/combopage/view.php?id=6753291&from=nav" target="_blank" class="link-btn" id="moodleLink">פתחי את העמוד</a>
+        <button class="link-btn" onclick="openMoodleAndResume('https://opal.openu.ac.il/mod/combopage/view.php?id=6753291&from=nav')">פתחי את העמוד</button>
         <br>
         <button class="continue-btn" id="continueBtn1" onclick="continueVideo()">המשיכי לצפות</button>
     </div>
@@ -417,30 +417,33 @@
     });
 
     // ==========================================
-    // Moodle link: real <a href target="_blank">
-    // v23: The <a> tag handles navigation natively
-    // (never blocked as popup). We just do cleanup:
-    // try PiP (best effort), resume video, hide
-    // overlay AFTER a delay so DOM removal doesn't
-    // cancel the <a> navigation.
+    // Moodle link: open in new tab
+    // v24 (based on v12): window.open is the VERY
+    // FIRST call (synchronous, user-gesture context).
+    // This gives us moodleWin ref for auto-nav.
+    // Overlay hide delayed 2s so it doesn't
+    // interfere with the window opening.
+    // PiP attempted after (async, best effort).
     // ==========================================
-    document.getElementById('moodleLink').addEventListener('click', function() {
-        // Do NOT preventDefault — let <a> navigate naturally!
+    function openMoodleAndResume(url) {
+        // STEP 1: open Moodle FIRST (user gesture = not blocked)
+        moodleWin = window.open(url, 'courseWindow');
 
+        // STEP 2: stop cycling
         stopTabCycling();
 
-        // Try PiP so Danit floats above Moodle (best effort)
+        // STEP 3: resume video + try PiP (async, fine)
         vid.play().then(function() {
             tryPiP();
         }).catch(function() {});
 
-        // Hide overlay AFTER 2s delay (prevents DOM removal
-        // from cancelling the <a> tag navigation)
+        // STEP 4: hide overlay + scroll AFTER 2s delay
         setTimeout(function() {
             document.getElementById('pauseOverlay1').classList.remove('active');
+            scrollFirstPage();
             showScrollToast();
         }, 2000);
-    });
+    }
 
     function continueVideo() {
         document.getElementById('pauseOverlay1').classList.remove('active');
