@@ -261,14 +261,11 @@
         src="https://shir-openu.github.io/example_second_order_direction_field_enrichment/"
         sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
 
-<!-- Content iframe (Firefox fallback — Moodle pages load here instead of new window) -->
-<iframe id="content-iframe" style="position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:5;display:none;"></iframe>
-
 <!-- Pause overlay (t=40) -->
 <div class="pause-overlay" id="pauseOverlay1">
     <div class="pause-popup">
         <h3>שדה כיוונים</h3>
-        <a href="https://opal.openu.ac.il/mod/combopage/view.php?id=6753291&from=nav" target="_top" class="link-btn" id="moodleLink">פתחי את העמוד</a>
+        <a href="https://opal.openu.ac.il/mod/combopage/view.php?id=6753291&from=nav" target="_blank" class="link-btn" id="moodleLink">פתחי את העמוד</a>
         <br>
         <button class="continue-btn" id="continueBtn1" onclick="continueVideo()">המשיכי לצפות</button>
     </div>
@@ -300,14 +297,10 @@
     var videoContainer = document.getElementById('floatingVideo');
     var teaserOverlay = document.getElementById('teaser-overlay');
     var bgIframe = document.getElementById('bg-iframe');
-    var contentIframe = document.getElementById('content-iframe');
     var progressBar = document.getElementById('progress-bar');
     var scrollToast = document.getElementById('scroll-toast');
     var moodleWin = null;
     var started = false;
-
-    // Firefox detection — Firefox PiP doesn't stay above other windows
-    var isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
 
     // ==========================================
     // Background preset cycling (before Moodle)
@@ -317,7 +310,6 @@
     // Method 1: postMessage with { action:'clickPreset', index:N }
     //   — requires a listener on the GitHub Pages side.
     // Method 2: direct DOM access (same-origin only).
-    // Method 3: reload page with ?preset=N query param.
     // Stops when video reaches t=40.
     // ==========================================
     var bgBaseUrl = 'https://shir-openu.github.io/example_second_order_direction_field_enrichment/';
@@ -343,11 +335,6 @@
                 presetBtns[currentPreset].click();
             }
         } catch(e) {}
-
-        // Method 3: reload with query param (fallback — causes page reload)
-        // Only use if methods 1 and 2 both fail.
-        // Uncomment if needed:
-        // bgIframe.src = bgBaseUrl + '?preset=' + currentPreset;
     }
 
     // Start cycling presets every 10 seconds
@@ -386,9 +373,8 @@
         });
     }
 
-    // If user exits PiP manually, re-enter on next click (Chrome/Edge only)
+    // If user exits PiP manually, re-enter on next click
     document.addEventListener('click', function(e) {
-        if (isFirefox) return; // Firefox uses iframe fallback, no PiP
         if (e.target.closest('.pause-overlay')) return;
         if (e.target.closest('#teaser-overlay')) return;
         if (started && vid.currentTime > 0 && !vid.paused && !document.pictureInPictureElement) {
@@ -415,45 +401,43 @@
         vid.muted = false;
 
         // vid.play() returns a Promise — wait for it,
-        // then request PiP (Chrome/Edge only; Firefox uses iframe fallback)
+        // then request PiP (Firefox needs video playing first)
         var playPromise = vid.play();
-        if (!isFirefox) {
-            if (playPromise && playPromise.then) {
-                playPromise.then(function() {
-                    tryPiP();
-                }).catch(function() {
-                    tryPiP();
-                });
-            } else {
+        if (playPromise && playPromise.then) {
+            playPromise.then(function() {
                 tryPiP();
-            }
+            }).catch(function() {
+                // play failed — try PiP anyway
+                tryPiP();
+            });
+        } else {
+            // Old browsers: play() doesn't return a Promise
+            tryPiP();
         }
     });
 
     // ==========================================
     // Moodle link: real <a href target="_blank">
-    // v21 FIX: NO window.open at all. The <a> tag
-    // handles navigation natively — browsers NEVER
-    // block real <a> clicks as popups, even inside
-    // iframes or cross-origin contexts.
-    //
-    // CRITICAL: Do NOT hide the overlay synchronously!
-    // Hiding the parent (display:none) before the <a>
-    // navigation completes cancels the navigation.
-    // All cleanup happens in a 2-second setTimeout.
+    // v23: The <a> tag handles navigation natively
+    // (never blocked as popup). We just do cleanup:
+    // try PiP (best effort), resume video, hide
+    // overlay AFTER a delay so DOM removal doesn't
+    // cancel the <a> navigation.
     // ==========================================
     document.getElementById('moodleLink').addEventListener('click', function() {
-        // Do NOT call preventDefault — let the <a> tag navigate naturally!
-        // Do NOT hide overlay now — DOM removal cancels navigation!
+        // Do NOT preventDefault — let <a> navigate naturally!
 
         stopTabCycling();
 
-        // Delayed cleanup: hide overlay + resume video AFTER navigation starts
+        // Try PiP so Danit floats above Moodle (best effort)
+        vid.play().then(function() {
+            tryPiP();
+        }).catch(function() {});
+
+        // Hide overlay AFTER 2s delay (prevents DOM removal
+        // from cancelling the <a> tag navigation)
         setTimeout(function() {
             document.getElementById('pauseOverlay1').classList.remove('active');
-            vid.play().then(function() {
-                tryPiP();
-            }).catch(function() {});
             showScrollToast();
         }, 2000);
     });
@@ -539,7 +523,7 @@
             stopTabCycling();
         }
 
-        // --- Single pause at t=40 (no upper bound — fires even after seeking) ---
+        // --- Single pause at t=40 ---
         if (!pauseTriggered && t >= 40) {
             pauseTriggered = true;
             vid.pause();
@@ -555,7 +539,6 @@
             var nav = autoNav[i];
             if (!nav.triggered && t >= nav.time) {
                 nav.triggered = true;
-                // Navigate the already-opened window
                 if (moodleWin && !moodleWin.closed) {
                     try {
                         moodleWin.location.href = nav.url;
